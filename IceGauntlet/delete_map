@@ -1,0 +1,2 @@
+#!/bin/sh
+python map_client.py $1 $2 $3 deletemap
