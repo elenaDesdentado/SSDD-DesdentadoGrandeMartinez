@@ -13,6 +13,7 @@ import pyxel
 
 import game.pyxeltools
 from game.common import LIFE, LEVEL_COUNT
+from game.RemoteDungeonMap import RemoteDungeonMap
 
 class GameState:
     '''Game state base class'''
