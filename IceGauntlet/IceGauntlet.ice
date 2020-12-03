@@ -3,6 +3,7 @@ module IceGauntlet {
     exception Unauthorized {};
     exception RoomNotExists {};
     exception RoomAlreadyExists {};
+    exception WrongRoomFormat {};
 
     interface Authentication {
         string getNewToken(string user, string passHash) throws Unauthorized;
@@ -10,12 +11,12 @@ module IceGauntlet {
         bool isValid(string token);
     };
 
-    interface GameService {
+    interface Dungeon {
 	    string getRoom() throws RoomNotExists; 
     };
 
-    interface MapService {
-        void publish(string token, string roomData) throws Unauthorized, RoomAlreadyExists;
+    interface RoomManager {
+        void publish(string token, string roomData) throws Unauthorized, RoomAlreadyExists, WrongRoomFormat;
         void remove(string token, string roomName) throws Unauthorized, RoomNotExists; 
     };
 
