@@ -4,6 +4,7 @@
 import sys
 import getpass
 import hashlib
+import argparse
 import Ice
 Ice.loadSlice('IceGauntlet.ice')
 # pylint: disable=E0401
@@ -14,38 +15,55 @@ import IceGauntlet
 
 OPTION_NEW_TOKEN = 'newtoken'
 OPTION_CHANGE_PASSWORD = 'changepassword'
+TOKENS_FILE = 'tokens'
 
-# ¿Queda aqui bien la comprobacion de los argumentos?
-if len(sys.argv) != 3:
-    print('Usage: ./auth_client <auth_client_proxy> <option>, <option> can be {0} or {1}'.format(OPTION_NEW_TOKEN, OPTION_CHANGE_PASSWORD))
-    sys.exit(-1)
-    
+
+def parse_commandline():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("user", help="Nombre de usuario registrado en el servidor de autenticación")
+    parser.add_argument("AuthenticationServerProxy", help="Proxy del servidor de autenticación para interactuar con el mismo")
+    parser.add_argument("-o", "--operation", help="Operación que ejecutará el servidor de autenticación", choices=[OPTION_NEW_TOKEN, OPTION_CHANGE_PASSWORD])
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        sys.exit(-1)
+    return args
+
 class AuthClient(Ice.Application):
     def run(self, argv):
-        proxy = self.communicator().stringToProxy(argv[1])  # auth_server proxy
+        options = parse_commandline()
+
+        proxy = self.communicator().stringToProxy(options.AuthenticationServerProxy)  # auth_server proxy
         print(argv[1])
         auth_server = IceGauntlet.AuthenticationPrx.checkedCast(proxy)
 
         if not auth_server:
             raise RuntimeError('Invalid proxy')
         
-        user = input('Introduce el nombre de usuario: ')
-        passwordHash = hashlib.sha256(bytes(getpass.getpass('Introduce tu contraseña: '), encoding='UTF-8')).hexdigest()
+        passwordHash = hashlib.sha256(bytes(getpass.getpass('Introduce tu password: '), encoding='UTF-8')).hexdigest()
         
-        if sys.argv[2].lower() == OPTION_NEW_TOKEN:
+        
+        if options.operation.lower() == OPTION_NEW_TOKEN:
             try:
-                auth_server.getNewToken(user, passwordHash)
+                with open(TOKENS_FILE, 'w', encoding='UTF-8') as fileHandler:
+                    new_token = auth_server.getNewToken(options.user, passwordHash)
+                    fileHandler.write(new_token+'\n')
             except IceGauntlet.Unauthorized:
                 print('[ERROR] Usuario incorrecto.')
                 return -1
                 
-        elif sys.argv[2].lower() == OPTION_CHANGE_PASSWORD:
+        elif options.operation.lower() == OPTION_CHANGE_PASSWORD:
             try:
                 newPasswordHash = hashlib.sha256(bytes(getpass.getpass('Introduce tu nueva contraseña: '), encoding='UTF-8')).hexdigest()
-                auth_server.changePassword(user, passwordHash, newPasswordHash)
+                auth_server.changePassword(options.user, passwordHash, newPasswordHash)
             except IceGauntlet.Unauthorized:
                 print("[ERROR] Usuario y/o contraseña incorrectos, no se ha podido cambiar la contraseña.")
                 return -1
+        else:
+            print('[ERROR] Las opciones que puedes usar con -o: {0} o {1}'.format(OPTION_NEW_TOKEN, OPTION_CHANGE_PASSWORD))
+            return -1
+            
+        print('[SUCCESS] Operación realizada con éxito.')
         return 0
 
 
