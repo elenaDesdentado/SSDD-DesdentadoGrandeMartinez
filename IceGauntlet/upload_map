@@ -1,2 +1,2 @@
 #!/bin/sh
-python map_client.py $1 $2 $3 publishmap
+python3 map_client.py "$1" $2 $3 -o publishmap
