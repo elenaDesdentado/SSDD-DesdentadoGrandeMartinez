@@ -16,19 +16,22 @@ import IceGauntlet
 MAPS_DB = "./maps.json"
 MAPS_FOLDER = "./maps/"
 MAPS_REMOVED_FOLDER = "./removed_maps/"
+PROXY_GAME_FILE = "proxy_game"
 
-if len(sys.argv) != 2:
-    print('Usage: ./run_map_server.py <auth_server_proxy>')
+if len(sys.argv) != 3:
+    for arg in sys.argv:
+        print(arg)
+    print('Usage: ./run_map_server.py <auth_server_proxy> --Ice.Config=run_map_server.conf')
     sys.exit(-1)
 
-class MapServiceI(IceGauntlet.MapService):
+class RoomManagerI(IceGauntlet.RoomManager):
     
     def __init__(self, authProxy):
         
         self.auth_server = IceGauntlet.AuthenticationPrx.checkedCast(authProxy)
         self.maps = dict()
         
-        if not auth_server:
+        if not self.auth_server:
             raise RuntimeError('Invalid proxy')
         with open(MAPS_DB, 'r', encoding='UTF-8') as mapsFileHandler:
             self.maps = json.load(mapsFileHandler)
@@ -37,7 +40,12 @@ class MapServiceI(IceGauntlet.MapService):
         if not(self.auth_server.isValid(token)):
             raise IceGauntlet.Unauthorized()
         else:
-            new_map = json.loads(roomData)
+            try:
+                new_map = json.loads(roomData)
+            except: 
+                IceGauntlet.WrongRoomFormat()
+            if 'room' not in new_map or 'data' not in new_map:
+                raise IceGauntlet.WrongRoomFormat()   
             if new_map['room'] in self.maps and self.maps[new_map['room']] != token:
                 raise IceGauntlet.RoomAlreadyExists()
             with open('{0}{1}.{2}'.format(MAPS_FOLDER, new_map['room'], 'json'), 'w', encoding='UTF-8') as newMapFile:
@@ -63,7 +71,7 @@ class MapServiceI(IceGauntlet.MapService):
                 raise IceGauntlet.Unauthorized()
             
 
-class GameServiceI(IceGauntlet.GameService):
+class DungeonI(IceGauntlet.Dungeon):
 
     def getRoom(self, current=None):
         selected_room = None
@@ -83,18 +91,20 @@ class GameServiceI(IceGauntlet.GameService):
 class Server(Ice.Application):
     
     def run(self, argv):
-        broker = self.communicator()        #Luego hay que usarlo para el auth_server y conseguir el proxy
-        servant_maps = MapServiceI(broker.stringToProxy(argv[1]))
-        servat_game = GameServiceI()
+        broker = self.communicator()
+        servant_maps = RoomManagerI(broker.stringToProxy(argv[1]))
+        servant_game = DungeonI()
 
-        adapter_maps = broker.createObjectAdapter("MapsAdapter")
-        adapter_gamme = broker.createObjectAdapter("GameAdapter")
-        proxy = adapter_maps.add(servant_maps, broker.stringToIdentity("Maps1"))
-        proxy = adapter_maps.add(servant_maps, broker.stringToIdentity("Maps1"))
+        adapter_maps_game = broker.createObjectAdapter("MapsGameAdapter")
+        proxy_maps = adapter_maps_game.add(servant_maps, broker.stringToIdentity("Maps"))
+        proxy_game = adapter_maps_game.add(servant_game, broker.stringToIdentity("Game"))
 
-        print(proxy, flush=True)
-
-        adapter.activate()
+        print('"' + str(proxy_maps) + '"' , flush=True) 
+        
+        with open(PROXY_GAME_FILE, 'w', encoding='UTF-8') as fileHandler:
+            fileHandler.write('"' + str(proxy_game) + '"\n') 
+            
+        adapter_maps_game.activate()
         self.shutdownOnInterrupt()
         broker.waitForShutdown()
 
