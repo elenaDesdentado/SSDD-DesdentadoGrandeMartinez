@@ -6,36 +6,6 @@ Ice.loadSlice('./IceGauntlet.ice')
 import IceGauntlet
 # pylint: enable=E0401
 # pylint: enable=C0413
-
-# class RemoteDungeonMap(Ice.Application):
-    
-    # def __init__(self, game_proxy):
-    #     self.game_proxy = game_proxy
-    #     self._new_room = None
-    #     self.game_server = None
-
-    # def run(self, argv):
-    #     proxy = self.communicator().stringToProxy(self.game_proxy)
-    #     print(self.communicator())
-    #     self.game_server = IceGauntlet.DungeonPrx.checkedCast(proxy)
-    #     if not self.game_server:
-    #         raise RuntimeError('Invalid game proxy')
-    #     self._new_room = self.game_server.getRoom()
-
-    # @property
-    # def next_room(self):
-    #     try:
-    #         #roomData = self.game_server.getRoom()
-    #         self.main(sys.argv)
-    #     except IceGauntlet.RoomNotExists:
-    #         print('[ERROR] No hay ningun mapa subido actualmente')
-    #         sys.exit(-1)
-    #     #return roomData
-    #     return self._new_room
-
-    # @property
-    # def finished(self):
-    #     return True
     
 class RemoteDungeonMap:
     def __init__(self, game_proxy, argvs):
