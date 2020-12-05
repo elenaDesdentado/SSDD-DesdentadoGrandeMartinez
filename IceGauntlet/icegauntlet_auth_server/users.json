@@ -1,7 +1,10 @@
 {
-    "elena-desdentado": {},
+    "elena-desdentado": {
+        "current_token": "fyDFVjk2MVYXUnHgcqz2L2g9vYPl0BlMkRJulFGO",
+        "password_hash": "1ef62013f28e97f69579402dfd1c1b01fa5a9344987edf0ba14a8c717931a274"
+    },
     "ruben-grande": {
-        "current_token": "reAjAvSu8nko3EooC3zhWUQCq2VcoCPjukU3n0RZ",
+        "current_token": "SolDFoTXD1juisMwUgRLWlhi5TYLrvpTnQHKQoom",
         "password_hash": "1ef62013f28e97f69579402dfd1c1b01fa5a9344987edf0ba14a8c717931a274"
     },
     "sergio-martinez34": {}
