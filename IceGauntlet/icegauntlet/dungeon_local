@@ -12,13 +12,18 @@ import logging
 import argparse
 import Ice
 Ice.loadSlice('./IceGauntlet.ice')
+# pylint: disable=E0401
+# pylint: disable=C0413
 import IceGauntlet
-
+# pylint: enable=E0401
+# pylint: enable=C0413
+# pylint: disable=wrong-import-position
 import game
 import game.common
 import game.screens
 import game.pyxeltools
 import game.orchestration
+# pylint: enable=wrong-import-position
 
 
 EXIT_OK = 0
