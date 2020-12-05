@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-
 '''
     Game base and states
 '''
-
-
 import uuid
-
 import pyxel
 
 import game.pyxeltools
 from game.common import LIFE, LEVEL_COUNT
-from game.RemoteDungeonMap import RemoteDungeonMap
+from game.remotedungeonmap import RemoteDungeonMap
+
 
 class GameState:
     '''Game state base class'''
@@ -51,7 +48,7 @@ class PlayerData:
         }
         if initial_attributes:
             self.attribute.update(initial_attributes)
-    
+
     @property
     def hero_class(self):
         return self.attribute['hero_class']
@@ -63,6 +60,7 @@ class PlayerData:
 
 class DungeonMap:
     '''Store a list of rooms'''
+
     def __init__(self, levels):
         self._levels_ = levels
         self._levels_.reverse()
@@ -79,6 +77,7 @@ class DungeonMap:
 
 class Game:
     '''This class wraps the game loop created by pyxel'''
+
     def __init__(self, hero_class, dungeon):
         self._identifier_ = str(uuid.uuid4())
         self._states_ = {}

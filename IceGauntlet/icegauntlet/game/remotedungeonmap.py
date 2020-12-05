@@ -1,22 +1,32 @@
+from __future__ import print_function
 import sys
+# pylint: disable=import-error
 import Ice
+# pylint: enable=import-error
 Ice.loadSlice('./IceGauntlet.ice')
 # pylint: disable=E0401
 # pylint: disable=C0413
 import IceGauntlet
 # pylint: enable=E0401
 # pylint: enable=C0413
-    
-class RemoteDungeonMap:
+
+
+class RemoteDungeonMap(object):
+    '''
+        Clase para obtener rooms remotamente
+    '''
     def __init__(self, game_proxy, argvs):
         self.communicator = Ice.initialize(argvs)
         self.proxy = self.communicator.stringToProxy(game_proxy)
         self.game_server = IceGauntlet.DungeonPrx.checkedCast(self.proxy)
         if not self.game_server:
             raise RuntimeError('Invalid game proxy')
-    
+
     @property
     def next_room(self):
+        '''
+            Devuelve una habitacion en forma de string
+        '''
         try:
             return self.game_server.getRoom()
         except IceGauntlet.RoomNotExists:
@@ -25,7 +35,10 @@ class RemoteDungeonMap:
 
     @property
     def finished(self):
+        '''
+            Propiedad constante para compatibilidad con DungeonMap
+        '''
         return True
-    
+
     def __del__(self):
         self.communicator.destroy()
