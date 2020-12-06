@@ -1,6 +1,6 @@
-# SSDD-LA1
+# SSDD-DesdentadoGrandeMartinez
 
-Project url: https://github.com/elenaDesdentado/SSDD-LA1  
+Project url: https://github.com/elenaDesdentado/SSDD-DesdentadoGrandeMartinez  
   
 Project members:  
 • Rubén Grande Muñoz - Ruben.Grande@alu.uclm.es  
