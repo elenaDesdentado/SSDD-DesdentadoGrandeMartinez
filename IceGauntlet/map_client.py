@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+'''
+    Map client for IceGauntlet
+'''
+
 from __future__ import print_function
 import sys
-import json
 import argparse
 # pylint: disable=import-error
 import Ice
@@ -17,10 +20,6 @@ import IceGauntlet
 
 OPTION_PUBLISH_MAP = 'publishmap'
 OPTION_DELETE_MAP = 'deletemap'
-
-'''
-    Map client for IceGauntlet
-'''
 
 def parse_commandline():
     '''
