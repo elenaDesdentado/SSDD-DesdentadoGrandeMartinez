@@ -100,10 +100,13 @@ class AuthenticationI(IceGauntlet.Authentication):
         self._active_tokens_.add(new_token)
         return new_token
 
-    def isValid(self, token, current=None):
-        '''Return if token is active'''
-        return token in self._active_tokens_
-
+    def getOwner(self, token, current=None):
+        '''Return the owner of a token'''
+        if token in self._active_tokens_:
+            for user, value in self._users_.items():
+                if token == value['current_token']:
+                    return user
+        raise IceGauntlet.Unauthorized()
 
 class Server(Ice.Application):
     '''
