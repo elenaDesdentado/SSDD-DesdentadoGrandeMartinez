@@ -24,7 +24,7 @@ class MapsStorage():
     
     def get_map(self, room_name):
         if room_name in self.maps:
-            with open('{0}{1}.{2}'.format(MAPS_FOLDER, room_name, 'json'), 'w', encoding='UTF-8') as map_file:
+            with open('{0}{1}.{2}'.format(MAPS_FOLDER, room_name, 'json'), 'r', encoding='UTF-8') as map_file:
                 return json.load(map_file)
         else:
             return None
