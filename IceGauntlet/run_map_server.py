@@ -6,8 +6,10 @@ import sys
 import os
 import random
 import json
+from maps_storage import MapsStorage
 # pylint: disable=import-error
 import Ice
+import IceStorm
 Ice.loadSlice('IceGauntlet.ice')
 # pylint: disable=E0401
 # pylint: disable=C0413
@@ -76,43 +78,60 @@ class RoomManagerI(IceGauntlet.RoomManager):
         else:
             raise IceGauntlet.Unauthorized()
 
-    def availableRooms():
+    def availableRooms(self, current=None):
         room_list = list()
-        for room, user self.maps.get_maps():
-            room_list.append(room + ' ' + user)
+        for room in self.maps.get_maps():
+            room_list.append(room + ' ' + self.maps.get_maps()[room])
+        
         return room_list
     
     def getRoom(self, roomName, current=None):
         json_map = self.maps.get_map(roomName)
         if json_map == None:
-            raise IceGauntlet.RoomNotExists();
+            raise IceGauntlet.RoomNotExists()
         else:
-            return json_map
+            user = self.maps.get_maps()[roomName]
+            return json.dumps(json_map) + '_' + user    #Puede fallar
 
 class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
     
-    def __init__(self, maps_storage, room_manager):
+    def __init__(self, maps_storage, room_manager, casted_proxy_maps):
         self.maps = maps_storage
         self.manager_id = ''
         self.room_manager = room_manager
+        self.managers = dict()
+        self.casted_proxy_maps = casted_proxy_maps
 
     def hello(self, manager, managerId, current=None):
+        print('Ejecutando hello...')
+        print(managerId)
+        print(self.manager_id)
         if not managerId == self.manager_id:
-            self.announce(self.room_manager, self.manager_id)
+            self.managers[managerId] = manager
+            self.room_manager.publisher.announce(self.casted_proxy_maps, self.manager_id)
     
     def announce(self, manager, managerId, current=None):
+        print('Ejecutando announce...')
         announcer_rooms = manager.availableRooms()
-        for room_and_user in announcer_rooms:
-            room, user = room_and_user.split(' ')
-            json_map = manager.getRoom(room)
-            self.maps.add_map(json_map, user)
+        self.managers[managerId] = manager
+        if not managerId == self.manager_id:
+            for room_and_user in announcer_rooms:
+                room, user = room_and_user.split(' ')
+                json_map_and_user = manager.getRoom(room)
+                json_map, user = json_map_and_user.split('_')
+                new_map = json.loads(json_map)
+                self.maps.add_map(new_map, user)
     
     def newRoom(self, roomName,  managerId, current=None):
-        pass
+        manager_new_map = self.managers[managerId]
+        json_map_and_user = manager_new_map.getRoom(roomName)
+        json_map, user = json_map_and_user.split('_')
+        new_map = json.loads(json_map)
+        self.maps.add_map(new_map, user)
     
     def removedRoom(self, roomName, current=None):
-        pass
-
+        self.maps.remove_map(roomName)
+    
 class DungeonI(IceGauntlet.Dungeon):
     '''
         Implements Dungeon interface
@@ -185,29 +204,30 @@ class Server(Ice.Application):
         room_manager_sync_publisher = IceGauntlet.RoomManagerSyncPrx.uncheckedCast(publisher)   # Para nuestro publisher, el canal implementa la interfaz del printer para poder mandar eventos a los suscribers
         
         # Some calls to methods on room_manager_sync_methods        
-        
+
+        # RoomManager initialization
         maps_storage = MapsStorage()
         servant_maps = RoomManagerI(broker.stringToProxy(argv[1]), maps_storage, room_manager_sync_publisher)
-        servant_game = DungeonI()
-
-        servant_roomManagerSync = RoomManagerSyncI(maps_storage, servant_maps)
-        adapter = broker.createObjectAdapter("RoomManagerSyncAdapter")
-        servant_proxy = adapter.addWithUUID(servant_roomManagerSync)   # proxy del suscriber a registrar al topic
-        servant_roomManagerSync.manager_id =  servant_proxy.ice_getIdentity()
-
-        # Suscribe un PROXY al canal de eventos, que es la referencia a un obejto remoto sin tipos
-        topic.subscribeAndGetPublisher(qos, servant_proxy)     # Lo que devuelve, mejor no usarlo -> solo lo usamos para suscribir, para obtener un publisher usamos otra
-        # servant_maps.publisher.hello(servant_maps, servant_maps.publisher.manager_id)
-        room_manager_sync_publisher.hello(servant_maps, servant_roomManagerSync.manager_id)
-
         adapter_maps_game = broker.createObjectAdapter("MapsGameAdapter")
         proxy_maps = adapter_maps_game.add(
             servant_maps, broker.stringToIdentity("Maps"))
+        casted_proxy_maps = IceGauntlet.RoomManagerPrx.uncheckedCast(proxy_maps)
+        
+        # RoomManagerSync
+        servant_roomManagerSync = RoomManagerSyncI(maps_storage, servant_maps, casted_proxy_maps)
+        adapter = broker.createObjectAdapter("RoomManagerSyncAdapter")
+        servant_proxy = adapter.addWithUUID(servant_roomManagerSync)
+        identity =  servant_proxy.ice_getIdentity()
+        servant_roomManagerSync.manager_id = broker.identityToString(identity)
+
+        topic.subscribeAndGetPublisher(qos, servant_proxy)
+
+        #Dungeon initialization
+        servant_game = DungeonI()
         proxy_game = adapter_maps_game.add(
             servant_game, broker.stringToIdentity("Game"))
-
-        print('"{0}"'.format(str(proxy_maps)))
-        #print('"' + str(proxy_maps) + '"', flush=True)
+        
+        room_manager_sync_publisher.hello(casted_proxy_maps, servant_roomManagerSync.manager_id)
 
         with open(PROXY_GAME_FILE, 'w', encoding='UTF-8') as file_handler:
             file_handler.write('"' + str(proxy_game) + '"\n')
