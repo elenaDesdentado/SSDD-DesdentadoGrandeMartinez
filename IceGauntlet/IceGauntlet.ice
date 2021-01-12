@@ -48,4 +48,21 @@ module IceGauntlet {
         void removedRoom(string roomName);
     };
 
+    // Event channel for DungeonArea synchronization
+    interface DungeonAreaSync {
+        void fireEvent(bytes event, string senderId);
+    };
+
+    interface DungeonArea {
+        string getEventChannel();
+        string getMap();
+        cast getActors();
+        objects getItems();
+        DungeonArea* getNextArea();
+    };
+
+    interface Dungeon {
+        DungeonArea* getEntrance() throws RoomNotExists;
+    };
+
 };
