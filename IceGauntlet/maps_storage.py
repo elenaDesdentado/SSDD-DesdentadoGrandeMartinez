@@ -35,3 +35,11 @@ class MapsStorage():
                     '{0}{1}.{2}'.format(MAPS_REMOVED_FOLDER, room_name, 'json'))
         with open(MAPS_DB, 'w', encoding='UTF-8') as maps_file_handler:
             json.dump(self.maps, maps_file_handler, indent=2)
+            
+    def read_json(self, room_name):
+        if room_name in self.maps:
+            with open('{0}{1}.{2}'.format(MAPS_FOLDER, room_name, 'json'), 'r', encoding='UTF-8') as map_file:
+                return json.dumps(json.load(map_file))
+        else:
+            return None
+        
