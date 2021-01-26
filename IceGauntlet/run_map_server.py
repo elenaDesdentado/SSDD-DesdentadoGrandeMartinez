@@ -27,11 +27,11 @@ PROXY_GAME_FILE = "proxy_game"
     Run map server for IceGauntlet
 '''
 
-if len(sys.argv) != 3:
-    for arg in sys.argv:
-        print(arg)
-    print('Usage: ./run_map_server.py <auth_server_proxy> --Ice.Config=run_map_server.conf')
-    sys.exit(-1)
+# if len(sys.argv) != 3:
+#     for arg in sys.argv:
+#         print(arg)
+#     print('Usage: ./run_map_server.py <auth_server_proxy> --Ice.Config=run_map_server.conf')
+#     sys.exit(-1)
 
 class RoomManagerI(IceGauntlet.RoomManager):
     '''
@@ -294,7 +294,7 @@ class Server(Ice.Application):
         try:
             topic = topic_mgr.retrieve(topic_room_manager_sync)
         except IceStorm.NoSuchTopic:
-            topic = topic_mgr.create(topic_mgr.retrieve(topic_room_manager_sync))
+            topic = topic_mgr.create(topic_room_manager_sync)
         
         ###### PARTE DEL PUBLISHER #######
         publisher = topic.getPublisher()
@@ -302,7 +302,11 @@ class Server(Ice.Application):
 
         # RoomManager initialization
         maps_storage = MapsStorage()
-        servant_maps = RoomManagerI(broker.stringToProxy(argv[1]), maps_storage, room_manager_sync_publisher)
+        auth_server = broker.getProperties().getProperty('AuthServer')
+        print(auth_server)
+        auth_server_split = auth_server.split('\"')
+        servant_maps = RoomManagerI(broker.stringToProxy(auth_server_split[0]), 
+                                    maps_storage, room_manager_sync_publisher)
         adapter_maps_game = broker.createObjectAdapter("MapsGameAdapter")
         proxy_maps = adapter_maps_game.add(
             servant_maps, broker.stringToIdentity("Maps"))
