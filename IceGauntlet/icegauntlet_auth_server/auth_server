@@ -36,7 +36,8 @@ def _build_token_():
 
 class AuthenticationI(IceGauntlet.Authentication):
     '''Authentication servant'''
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self._users_ = {}
         self._active_tokens_ = set()
         if os.path.exists(USERS_FILE):
@@ -117,11 +118,12 @@ class Server(Ice.Application):
         Server loop
         '''
         logging.debug('Initializing server...')
-        servant = AuthenticationI()
+        servant = AuthenticationI(self.communicator().getProperties().getProperty('Ice.ProgramName'))
         signal.signal(signal.SIGUSR1, servant.refresh)
 
         adapter = self.communicator().createObjectAdapter('AuthenticationAdapter')
-        proxy = adapter.add(servant, self.communicator().stringToIdentity('default'))
+        id_ = self.communicator().getProperties().getProperty('Identity')
+        proxy = adapter.add(servant, self.communicator().stringToIdentity(id_))
         adapter.addDefaultServant(servant, '')
         adapter.activate()
         logging.debug('Adapter ready, servant proxy: {}'.format(proxy))
