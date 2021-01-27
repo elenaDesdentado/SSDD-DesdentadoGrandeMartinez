@@ -1,2 +1,2 @@
 #!/bin/sh
-python3 map_client.py "$1" $2 $3 -o publishmap
+python3 map_client.py "$1" $2 $3 -o publishmap --Ice.Config=locator.config

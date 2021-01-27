@@ -1,2 +1,2 @@
 #!/bin/sh
-python3 map_client.py "$1" $2 $3 -o deletemap
+python3 map_client.py "$1" $2 $3 -o deletemap --Ice.Config=locator.config
