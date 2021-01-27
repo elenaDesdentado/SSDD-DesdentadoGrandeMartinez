@@ -1,0 +1,13 @@
+icebox --Ice.Config=icebox.config
+mkdir -p /tmp/db/node1
+mkdir -p /tmp/db/node2
+mkdir -p /tmp/IceGauntlet
+mkdir -p /tmp/db/registry
+icegridnode --Ice.Config=node1.config &
+sleep 1
+icegridnode --Ice.Config=node2.config &
+cp run_map_server.py run_map_server.conf IceGauntlet.ice icegauntlettool.py maps_storage.py maps.json icegauntlet_auth_server/auth_server icegauntlet_auth_server/icegauntlet.ice /tmp/IceGauntlet/
+cp icegauntlet_auth_server/users.json /tmp/IceGauntlet/
+cp -r maps/ removed_maps/ /tmp/IceGauntlet/
+cp -r IceStorm/ /tmp/IceGauntlet/
+icepatch2calc /tmp/IceGauntlet
