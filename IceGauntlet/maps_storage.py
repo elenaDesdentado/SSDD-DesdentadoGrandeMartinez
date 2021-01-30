@@ -15,6 +15,13 @@ class MapsStorage():
         Class holding functions over the maps storage
     '''
     def __init__(self):
+        if not os.path.exists(MAPS_FOLDER) or not os.path.isdir(MAPS_FOLDER):
+            os.mkdir(MAPS_FOLDER)
+        if not os.path.exists(MAPS_REMOVED_FOLDER) or not os.path.isdir(MAPS_REMOVED_FOLDER):
+            os.mkdir(MAPS_REMOVED_FOLDER)
+        if not os.path.exists(MAPS_DB) or not os.path.isfile(MAPS_DB):
+            with open(MAPS_DB, 'w', encoding='UTF-8') as maps_file_handler:
+                json.dump({}, maps_file_handler, indent=2)
         self.maps = dict()
         with open(MAPS_DB, 'r', encoding='UTF-8') as maps_file_handler:
             self.maps = json.load(maps_file_handler)
