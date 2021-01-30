@@ -33,6 +33,7 @@ class MapsStorage():
         '''
         print(os.getcwd())
         print('{0}{1}.{2}'.format(self.base_dir + MAPS_FOLDER, new_map['room'], 'json'))
+        new_map['author'] = owner
         with open('{0}{1}.{2}'.format(self.base_dir + MAPS_FOLDER, new_map['room'], 'json'),
         'w', encoding='UTF-8') as new_map_file:
             json.dump(new_map, new_map_file)
@@ -72,7 +73,7 @@ class MapsStorage():
         del self.maps[room_name]
         os.replace('{0}{1}.{2}'.format(self.base_dir + MAPS_FOLDER, room_name, 'json'),
         '{0}{1}.{2}'.format(self.base_dir + MAPS_REMOVED_FOLDER, room_name, 'json'))
-        with open(MAPS_DB, 'w', encoding='UTF-8') as maps_file_handler:
+        with open(self.base_dir + MAPS_DB, 'w', encoding='UTF-8') as maps_file_handler:
             json.dump(self.maps, maps_file_handler, indent=2)
 
     def read_json(self, room_name):
