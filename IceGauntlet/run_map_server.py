@@ -5,14 +5,14 @@
     Server holding maps and game management for IceGauntlet
 '''
 
+# pylint: disable=W0410
+from __future__ import print_function
+# pylint: enable=W0410
 import sys
 import random
 import json
 import uuid
 import pickle
-# pylint: disable=W0410
-from __future__ import print_function
-# pylint: enable=W0410
 # pylint: disable=import-error
 import Ice
 import icegauntlettool
@@ -92,10 +92,11 @@ class RoomManagerI(IceGauntlet.RoomManager):
         '''
             Returns a list of available rooms names
         '''
+        print('available rooms before the loop')
         room_list = list()
         for room in self.maps.get_maps():
             room_list.append(room + ' ' + self.maps.get_maps()[room])
-
+        print('Available rooms in ', self.manager_id, ': ', room_list)
         return room_list
 
     def getRoom(self, roomName, current=None):
@@ -109,6 +110,7 @@ class RoomManagerI(IceGauntlet.RoomManager):
             raise IceGauntlet.RoomNotExists()
 
         user = self.maps.get_maps()[roomName]
+        print(roomName + '_' + user)
         return json.dumps(json_map) + '_' + user
 
 class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
@@ -128,7 +130,6 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         '''
             Handler for the hello event
         '''
-        print('hello ejecutado')
         if not managerId == self.manager_id:
             print('hello recibido')
             self.managers[managerId] = manager
@@ -140,11 +141,13 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         '''
             Handler for the announce event
         '''
-        print('announce ejecutado')
-        announcer_rooms = manager.availableRooms()
-        self.managers[managerId] = manager
         if not managerId == self.manager_id:
             print('announce recibido')
+            print('manager:', manager, ' id: ', managerId)
+            announcer_rooms = manager.availableRooms()
+            print(managerId, 'mis rooms:', announcer_rooms)
+            self.managers[managerId] = manager
+            print('Managers registrados: ', self.managers)
             for room_and_user in announcer_rooms:
                 room, user = room_and_user.split(' ')
                 json_map_and_user = manager.getRoom(room)
@@ -158,12 +161,31 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         '''
             Handler for the newRoom event
         '''
-        print('newRoom recibido')
-        manager_new_map = self.managers[managerId]
-        json_map_and_user = manager_new_map.getRoom(roomName)
-        json_map, user = json_map_and_user.split('_')
-        new_map = json.loads(json_map)
-        self.maps.add_map(new_map, user)
+        if managerId != self.manager_id:
+            print('newRoom recibido de: ', managerId, ' ', roomName)
+            manager_new_map = self.managers[managerId]
+            print('Managers actuales: ', self.managers)
+            print('Antes de getRoom, ejecuta ', manager_new_map, ' del tipo ', type(manager_new_map))
+            # Por alguna razon, esta llamada es como es como si la ejecutase el 
+            # roomManager asociado al servicio que la recibe: si el nuevo room se lo suben a
+            # roomManager2, su proxy asociado deberia ser el que ejecutase el getRoom(), 
+            # pero parece que lo ejecuta el que lo recibe (en este caso roomManager1):
+            # newRoom recibido
+            # before manager_new_map.getRoom  58F0F938-68EF-41FC-B32B-CDAEE22A16DA   level2
+            # Mapas acltualmente almacenados en  /tmp/db/node1/distrib/IceGauntlet :  {'level1': 'elena-desdentado'}
+            # newRoom recibido de:  30C04811-A0B5-4D87-B5F6-7F0050DA9A6F   level2
+            # Managers actuales:  {'30C04811-A0B5-4D87-B5F6-7F0050DA9A6F': room_manager -t -e 1.1 @ ReplicatedRoomManager, 'FDA32ADF-8B64-44FD-A59F-A4EC49A19A8A': room_manager -t -e 1.1 @ ReplicatedRoomManager}
+            # Antes de getRoom, ejecuta  room_manager -t -e 1.1 @ ReplicatedRoomManager  del tipo  <class 'IceGauntlet.RoomManagerPrx'>
+            # Mapas acltualmente almacenados en  /tmp/db/node2/distrib/IceGauntlet :  {'level1': 'elena-desdentado'}
+            # En este ultimo caso el evento fue en esta direccion: roomManager1 ----> roommanager3
+            # Resultado: maps.json de roomManager1 actualizado, el de roomManager3
+            json_map_and_user = manager_new_map.getRoom(roomName) 
+            print('after manager_new_map.getRoom')
+            json_map, user = json_map_and_user.split('_')
+            print('_'+json_map[:50])
+            print('_'+user)
+            new_map = json.loads(json_map)
+            self.maps.add_map(new_map, user)
 
     def removedRoom(self, roomName, current=None):
         #pylint: disable=W0613
@@ -174,7 +196,8 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
             Handler for the removedRoom event
         '''
         print('removedRoom recibido')
-        self.maps.remove_map(roomName)
+        if roomName in self.maps.get_maps():
+            self.maps.remove_map(roomName)
 
 class DungeonI(IceGauntlet.Dungeon):
     '''
@@ -211,16 +234,11 @@ class DungeonAreaI(IceGauntlet.DungeonArea):
         self.topic_dungeon_area = str(uuid.uuid1())
         self.topic = topic_mgr
         self.map_storage = maps_storage
-        try:
-            random_room_name = random.choice(list(maps_storage.get_maps().keys()))
-        except IndexError:
-            print('No hay ningún mapa actualmente almacenado.')
-        self.json_content = maps_storage.read_json(random_room_name)
+        self.json_content = None 
         self.adapter_dungeon_area_sync = adapter_dungeon_area_sync
         self.adapter_dungeon_area = adapter_dungeon_area
         self.topic_areas = topic_mgr.create(self.topic_dungeon_area)
         self.items = list()
-        self.create_items()
         self.actors = list()
 
         #DungeonAreaSync initialization
@@ -230,7 +248,6 @@ class DungeonAreaI(IceGauntlet.DungeonArea):
         self.topic_areas.subscribeAndGetPublisher({}, self.servant_proxy_das)
 
         self.next_area = None
-        print(type(self.json_content))
 
     def getEventChannel(self, current=None):
         #pylint: disable=C0103, W0613
@@ -246,6 +263,13 @@ class DungeonAreaI(IceGauntlet.DungeonArea):
         '''
             Get current map data of the DungeonArea
         '''
+        if self.json_content is None:
+            try:
+                random_room_name = random.choice(list(self.map_storage.get_maps().keys()))
+            except IndexError:
+                raise IceGauntlet.RoomNotExists()
+            self.json_content = self.map_storage.read_json(random_room_name)
+            self.create_items()
         return self.json_content
 
     def getActors(self, current=None):
@@ -354,8 +378,10 @@ class Server(Ice.Application):
         '''
             Gets the topic manager from IceStorm service
         '''
+        #key = 'IceGauntlet.IceStorm.TopicManager'
         key = 'IceStorm.TopicManager.Proxy'
         proxy = self.communicator().propertyToProxy(key)
+        #proxy = self.communicator().stringToProxy('IceGauntlet.IceStorm/TopicManager')
         if proxy is None:
             print("property '{}' not set".format(key))
             return None
@@ -394,15 +420,18 @@ class Server(Ice.Application):
         # RoomManager initialization
         maps_storage = MapsStorage()
         auth_server = broker.getProperties().getProperty('AuthServer')
-        print(auth_server)
         auth_server_split = auth_server.split('\"')
         servant_maps = RoomManagerI(broker.stringToProxy(auth_server_split[0]),
                                     maps_storage, room_manager_sync_publisher)
         adapter_maps_game = broker.createObjectAdapter("MapsGameAdapter")
+        _id_room_manager = broker.getProperties().getProperty('Identity') ######
         proxy_maps = adapter_maps_game.add(
-            servant_maps, broker.stringToIdentity("Maps"))
-        casted_proxy_maps = IceGauntlet.RoomManagerPrx.uncheckedCast(proxy_maps)
+            servant_maps, broker.stringToIdentity(_id_room_manager)) ######
+        proxy_maps_direct = adapter_maps_game.add(
+            servant_maps, broker.stringToIdentity(broker.getProperties().getProperty('Ice.ProgramName')))
+        casted_proxy_maps = IceGauntlet.RoomManagerPrx.uncheckedCast(proxy_maps_direct)
 
+        print('Proxy individual : ', proxy_maps_direct) ######
         print('\"' + str(proxy_maps) + '\"')
 
         # RoomManagerSync
@@ -430,16 +459,17 @@ class Server(Ice.Application):
         proxy_game = adapter_maps_game.add(
             servant_game, broker.stringToIdentity("Game"))
 
+        adapter_maps_game.activate()
+        adapter.activate()
+        adapter_dungeon_area_sync.activate()
+        dungeon_area_adapter.activate()
+        
         room_manager_sync_publisher.hello(casted_proxy_maps, servant_room_manager_sync.manager_id)
         print('ejecutado hello desde run')
 
         with open(PROXY_GAME_FILE, 'w', encoding='UTF-8') as file_handler:
             file_handler.write('"' + str(proxy_game) + '"\n')
 
-        adapter_maps_game.activate()
-        adapter.activate()
-        adapter_dungeon_area_sync.activate()
-        dungeon_area_adapter.activate()
         self.shutdownOnInterrupt()
         broker.waitForShutdown()
 
