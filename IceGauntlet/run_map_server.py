@@ -109,9 +109,9 @@ class RoomManagerI(IceGauntlet.RoomManager):
         if json_map is None:
             raise IceGauntlet.RoomNotExists()
 
-        user = self.maps.get_maps()[roomName]
-        print(roomName + '_' + user)
-        return json.dumps(json_map) + '_' + user
+        #user = self.maps.get_maps()[roomName]
+        #print(roomName + '_' + user)
+        return json.dumps(json_map)
 
 class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
     '''
@@ -151,8 +151,8 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
             for room_and_user in announcer_rooms:
                 room, user = room_and_user.split(' ')
                 json_map_and_user = manager.getRoom(room)
-                json_map, user = json_map_and_user.split('_')
-                new_map = json.loads(json_map)
+                new_map = json.loads(json_map_and_user)
+                user = new_map['author']
                 self.maps.add_map(new_map, user)
 
     def newRoom(self, roomName,  managerId, current=None):
@@ -181,10 +181,8 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
             # Resultado: maps.json de roomManager1 actualizado, el de roomManager3
             json_map_and_user = manager_new_map.getRoom(roomName) 
             print('after manager_new_map.getRoom')
-            json_map, user = json_map_and_user.split('_')
-            print('_'+json_map[:50])
-            print('_'+user)
-            new_map = json.loads(json_map)
+            new_map = json.loads(json_map_and_user)
+            user = new_map['author']
             self.maps.add_map(new_map, user)
 
     def removedRoom(self, roomName, current=None):
@@ -283,7 +281,7 @@ class DungeonAreaI(IceGauntlet.DungeonArea):
     def getItems(self, current=None):
         #pylint: disable=W0613, C0103
         '''
-            Get current list of items of the DungeonArea
+            Get current list of items
         '''
         #pylint: enable=W0613, C0103
         return self.items
@@ -428,9 +426,10 @@ class Server(Ice.Application):
         proxy_maps = adapter_maps_game.add(
             servant_maps, broker.stringToIdentity(_id_room_manager)) ######
         proxy_maps_direct = adapter_maps_game.add(
-            servant_maps, broker.stringToIdentity(broker.getProperties().getProperty('Ice.ProgramName')))
+            servant_maps, broker.stringToIdentity(broker.getProperties().getProperty('DirectIdentity')))
+        proxy_maps_direct = broker.propertyToProxy('DirectIdentity')
         casted_proxy_maps = IceGauntlet.RoomManagerPrx.uncheckedCast(proxy_maps_direct)
-
+        
         print('Proxy individual : ', proxy_maps_direct) ######
         print('\"' + str(proxy_maps) + '\"')
 

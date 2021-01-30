@@ -116,7 +116,9 @@
             </properties>
             <adapter name="DungeonAreaAdapter" endpoints="tcp" id="${server}.DungeonAreaAdapter"/>
             <adapter name="DungeonAreaSyncAdapter" endpoints="tcp" id="${server}.DungeonAreaSyncAdapter"/>
-            <adapter name="MapsGameAdapter" endpoints="default" id="${server}.MapsGameAdapter" replica-group="ReplicatedRoomManager"/>
+            <adapter name="MapsGameAdapter" endpoints="default" id="${server}.MapsGameAdapter" replica-group="ReplicatedRoomManager">
+               <object identity="Maps${index}" type="::IceGauntlet::RoomManager" property="DirectIdentity"/>
+            </adapter>
             <adapter name="RoomManagerSyncAdapter" endpoints="tcp" id="${server}.RoomManagerSyncAdapter"/>
          </server>
       </server-template>
