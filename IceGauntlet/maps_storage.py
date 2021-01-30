@@ -23,6 +23,8 @@ class MapsStorage():
         '''
         Add a new map to the storage
         '''
+        print(os.getcwd())
+        print('{0}{1}.{2}'.format(MAPS_FOLDER, new_map['room'], 'json'))
         with open('{0}{1}.{2}'.format(MAPS_FOLDER, new_map['room'], 'json'),
         'w', encoding='UTF-8') as new_map_file:
             json.dump(new_map, new_map_file)
@@ -40,10 +42,18 @@ class MapsStorage():
         '''
         Get a stored mapped given its name
         '''
+        print('Mapas acltualmente almacenados en ', os.getcwd(), ': ', self.maps)
         if room_name in self.maps:
             with open('{0}{1}.{2}'.format(MAPS_FOLDER, room_name, 'json'),
             'r', encoding='UTF-8') as map_file:
-                return json.load(map_file)
+                try:
+                    return json.load(map_file)
+                except Exception as e:
+                    print('exception at loading in get_map')
+                    print("get_map " + room_name)
+                    print(e)
+                    print('exception at loading in get_map')
+                    raise Exception('exception at loading in get_map')
         else:
             return None
 
