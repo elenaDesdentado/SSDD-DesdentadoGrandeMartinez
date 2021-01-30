@@ -418,7 +418,7 @@ class Server(Ice.Application):
         room_manager_sync_publisher = IceGauntlet.RoomManagerSyncPrx.uncheckedCast(publisher)
 
         # RoomManager initialization
-        maps_storage = MapsStorage()
+        maps_storage = MapsStorage(broker.getProperties().getProperty('MapDataDir'))
         auth_server = broker.getProperties().getProperty('AuthServer')
         auth_server_split = auth_server.split('\"')
         servant_maps = RoomManagerI(broker.stringToProxy(auth_server_split[0]),
