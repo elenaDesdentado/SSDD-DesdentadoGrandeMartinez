@@ -1,0 +1,3 @@
+truncate -s 0 /tmp/db/node1/distrib/IceGauntlet/roomManager1-out.txt
+truncate -s 0 /tmp/db/node2/distrib/IceGauntlet/roomManager2-out.txt
+truncate -s 0 /tmp/db/node2/distrib/IceGauntlet/roomManager3-out.txt
