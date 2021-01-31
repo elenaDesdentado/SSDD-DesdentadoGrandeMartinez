@@ -57,7 +57,7 @@
       </server-template>
       <server-template id="IceGauntletAuthTemplate">
          <parameter name="index"/>
-         <server id="AuthServer${index}" activation="on-demand" exe="./auth_server" pwd="${application.distrib}">
+         <server id="AuthServer${index}" activation="manual" exe="./auth_server" pwd="${application.distrib}">
             <properties>
                <property name="Ice.StdOut" value="${application.distrib}/auth${index}-out.txt"/>
                <property name="Ice.ProgramName" value="${server}.Auth${index}"/>
@@ -105,7 +105,7 @@
       </server-template>
       <server-template id="RoomManagerTemplate">
          <parameter name="index"/>
-         <server id="RoomManager${index}" activation="on-demand" exe="./run_map_server.py" pwd="${application.distrib}">
+         <server id="RoomManager${index}" activation="manual" exe="./run_map_server.py" pwd="${application.distrib}">
             <properties>
                <property name="Ice.StdOut" value="${application.distrib}/roomManager${index}-out.txt"/>
                <property name="Ice.ProgramName" value="${server}.RoomManager${index}"/>
@@ -117,6 +117,7 @@
             <adapter name="DungeonAreaAdapter" endpoints="tcp" id="${server}.DungeonAreaAdapter"/>
             <adapter name="DungeonAreaSyncAdapter" endpoints="tcp" id="${server}.DungeonAreaSyncAdapter"/>
             <adapter name="MapsGameAdapter" endpoints="default" id="${server}.MapsGameAdapter" replica-group="ReplicatedRoomManager">
+               <object identity="Game${index}" type="::IceGauntlet::Dungeon" property="GameIdentity"/>
                <object identity="Maps${index}" type="::IceGauntlet::RoomManager" property="DirectIdentity"/>
             </adapter>
             <adapter name="RoomManagerSyncAdapter" endpoints="tcp" id="${server}.RoomManagerSyncAdapter"/>
