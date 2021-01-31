@@ -9,6 +9,7 @@
 from __future__ import print_function
 # pylint: enable=W0410
 import sys
+import time
 import random
 import json
 import uuid
@@ -27,13 +28,6 @@ import IceGauntlet
 # pylint: enable=C0413
 
 PROXY_GAME_FILE = "proxy_game"
-
-
-# if len(sys.argv) != 3:
-#     for arg in sys.argv:
-#         print(arg)
-#     print('Usage: ./run_map_server.py <auth_server_proxy> --Ice.Config=run_map_server.conf')
-#     sys.exit(-1)
 
 class RoomManagerI(IceGauntlet.RoomManager):
     '''
@@ -108,9 +102,6 @@ class RoomManagerI(IceGauntlet.RoomManager):
         json_map = self.maps.get_map(roomName)
         if json_map is None:
             raise IceGauntlet.RoomNotExists()
-
-        #user = self.maps.get_maps()[roomName]
-        #print(roomName + '_' + user)
         return json.dumps(json_map)
 
 class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
@@ -130,7 +121,7 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         '''
             Handler for the hello event
         '''
-        if not managerId == self.manager_id:
+        if managerId != self.manager_id:
             print('hello recibido')
             self.managers[managerId] = manager
             self.room_manager.publisher.announce(self.casted_proxy_maps, self.manager_id)
@@ -141,13 +132,18 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         '''
             Handler for the announce event
         '''
-        if not managerId == self.manager_id:
+        if managerId != self.manager_id and managerId not in self.managers:
             print('announce recibido')
             print('manager:', manager, ' id: ', managerId)
-            announcer_rooms = manager.availableRooms()
-            print(managerId, 'mis rooms:', announcer_rooms)
+            while True:
+                try:
+                    time.sleep(random.uniform(0, 5))
+                    print('announce despues del sleep')
+                    announcer_rooms = manager.availableRooms()
+                    break
+                except Ice.ConnectTimeoutException as e:
+                    pass
             self.managers[managerId] = manager
-            print('Managers registrados: ', self.managers)
             for room_and_user in announcer_rooms:
                 room, user = room_and_user.split(' ')
                 json_map_and_user = manager.getRoom(room)
@@ -165,22 +161,14 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
             print('newRoom recibido de: ', managerId, ' ', roomName)
             manager_new_map = self.managers[managerId]
             print('Managers actuales: ', self.managers)
-            print('Antes de getRoom, ejecuta ', manager_new_map, ' del tipo ', type(manager_new_map))
-            # Por alguna razon, esta llamada es como es como si la ejecutase el 
-            # roomManager asociado al servicio que la recibe: si el nuevo room se lo suben a
-            # roomManager2, su proxy asociado deberia ser el que ejecutase el getRoom(), 
-            # pero parece que lo ejecuta el que lo recibe (en este caso roomManager1):
-            # newRoom recibido
-            # before manager_new_map.getRoom  58F0F938-68EF-41FC-B32B-CDAEE22A16DA   level2
-            # Mapas acltualmente almacenados en  /tmp/db/node1/distrib/IceGauntlet :  {'level1': 'elena-desdentado'}
-            # newRoom recibido de:  30C04811-A0B5-4D87-B5F6-7F0050DA9A6F   level2
-            # Managers actuales:  {'30C04811-A0B5-4D87-B5F6-7F0050DA9A6F': room_manager -t -e 1.1 @ ReplicatedRoomManager, 'FDA32ADF-8B64-44FD-A59F-A4EC49A19A8A': room_manager -t -e 1.1 @ ReplicatedRoomManager}
-            # Antes de getRoom, ejecuta  room_manager -t -e 1.1 @ ReplicatedRoomManager  del tipo  <class 'IceGauntlet.RoomManagerPrx'>
-            # Mapas acltualmente almacenados en  /tmp/db/node2/distrib/IceGauntlet :  {'level1': 'elena-desdentado'}
-            # En este ultimo caso el evento fue en esta direccion: roomManager1 ----> roommanager3
-            # Resultado: maps.json de roomManager1 actualizado, el de roomManager3
-            json_map_and_user = manager_new_map.getRoom(roomName) 
-            print('after manager_new_map.getRoom')
+            while True:
+                try:
+                    time.sleep(random.uniform(0, 5))
+                    print('newRoom despues del sleep')
+                    json_map_and_user = manager_new_map.getRoom(roomName) 
+                    break
+                except Ice.ConnectTimeoutException as e:
+                    pass
             new_map = json.loads(json_map_and_user)
             user = new_map['author']
             self.maps.add_map(new_map, user)
@@ -298,6 +286,7 @@ class DungeonAreaI(IceGauntlet.DungeonArea):
         if len(self.map_storage.get_maps()) == 0:
             raise IceGauntlet.RoomNotExists()
         proxy = self.adapter_dungeon_area.addWithUUID(self.next_area)
+        print('Getting into the next Dungeon Area...')
         return IceGauntlet.DungeonAreaPrx.checkedCast(proxy)
 
     def create_items(self):
@@ -330,6 +319,7 @@ class DungeonAreaSyncI(IceGauntlet.DungeonAreaSync):
             return
 
         event_type = loaded_event[0]
+        print('event: ', event_type, '  sender id: ', senderId)
         if event_type == 'spawn_actor':
             if not loaded_event[1].isnumeric():
                 self.dungeon_area.actors.append(
@@ -376,10 +366,8 @@ class Server(Ice.Application):
         '''
             Gets the topic manager from IceStorm service
         '''
-        #key = 'IceGauntlet.IceStorm.TopicManager'
         key = 'IceStorm.TopicManager.Proxy'
         proxy = self.communicator().propertyToProxy(key)
-        #proxy = self.communicator().stringToProxy('IceGauntlet.IceStorm/TopicManager')
         if proxy is None:
             print("property '{}' not set".format(key))
             return None
@@ -430,7 +418,7 @@ class Server(Ice.Application):
         proxy_maps_direct = broker.propertyToProxy('DirectIdentity')
         casted_proxy_maps = IceGauntlet.RoomManagerPrx.uncheckedCast(proxy_maps_direct)
         
-        print('Proxy individual : ', proxy_maps_direct) ######
+        print('Proxy individual de la instancia: ', proxy_maps_direct) ######
         print('\"' + str(proxy_maps) + '\"')
 
         # RoomManagerSync
@@ -455,8 +443,11 @@ class Server(Ice.Application):
         #Dungeon initialization
         servant_game = DungeonI(maps_storage,
                                 servant_dungeon_area, dungeon_area_adapter)
+        _id_game = broker.getProperties().getProperty('GameIdentity') ######
         proxy_game = adapter_maps_game.add(
-            servant_game, broker.stringToIdentity("Game"))
+            servant_game, broker.stringToIdentity(_id_game))
+        
+        print(proxy_game)
 
         adapter_maps_game.activate()
         adapter.activate()
@@ -464,7 +455,7 @@ class Server(Ice.Application):
         dungeon_area_adapter.activate()
         
         room_manager_sync_publisher.hello(casted_proxy_maps, servant_room_manager_sync.manager_id)
-        print('ejecutado hello desde run')
+        print('Hello!')
 
         with open(PROXY_GAME_FILE, 'w', encoding='UTF-8') as file_handler:
             file_handler.write('"' + str(proxy_game) + '"\n')
