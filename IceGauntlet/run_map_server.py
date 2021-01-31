@@ -124,6 +124,20 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         if managerId != self.manager_id:
             print('hello recibido')
             self.managers[managerId] = manager
+            while True:
+                try:
+                    time.sleep(random.uniform(0, 5))
+                    announcer_rooms = manager.availableRooms()
+                    break
+                except Ice.ConnectTimeoutException as e:
+                    pass
+            for room_and_user in announcer_rooms:
+                room, user = room_and_user.split(' ')
+                if room not in self.maps.get_maps():
+                    json_map_and_user = manager.getRoom(room)
+                    new_map = json.loads(json_map_and_user)
+                    user = new_map['author']
+                    self.maps.add_map(new_map, user)
             self.room_manager.publisher.announce(self.casted_proxy_maps, self.manager_id)
 
     def announce(self, manager, managerId, current=None):
@@ -135,15 +149,14 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
         if managerId != self.manager_id and managerId not in self.managers:
             print('announce recibido')
             print('manager:', manager, ' id: ', managerId)
+            self.managers[managerId] = manager
             while True:
                 try:
                     time.sleep(random.uniform(0, 5))
-                    print('announce despues del sleep')
                     announcer_rooms = manager.availableRooms()
                     break
                 except Ice.ConnectTimeoutException as e:
                     pass
-            self.managers[managerId] = manager
             for room_and_user in announcer_rooms:
                 room, user = room_and_user.split(' ')
                 json_map_and_user = manager.getRoom(room)
@@ -164,7 +177,6 @@ class RoomManagerSyncI(IceGauntlet.RoomManagerSync):
             while True:
                 try:
                     time.sleep(random.uniform(0, 5))
-                    print('newRoom despues del sleep')
                     json_map_and_user = manager_new_map.getRoom(roomName) 
                     break
                 except Ice.ConnectTimeoutException as e:

@@ -72,6 +72,7 @@ class AuthClient(Ice.Application):
                 with open(TOKENS_FILE, 'w', encoding='UTF-8') as file_handler:
                     new_token = auth_server.getNewToken(options.user, password_hash)
                     file_handler.write(new_token+'\n')
+                print(new_token)
             except IceGauntlet.Unauthorized:
                 print('[ERROR] Usuario incorrecto.')
                 return -1
